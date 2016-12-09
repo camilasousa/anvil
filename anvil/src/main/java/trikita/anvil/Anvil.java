@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Anvil class is a namespace for top-level static methods and interfaces. Most
@@ -29,6 +30,7 @@ import java.util.WeakHashMap;
 public final class Anvil {
 
 	private final static Map<View, Mount> mounts = new WeakHashMap<>();
+	private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
 	private static Mount currentMount = null;
 
 	private static Handler anvilUIHandler = null;
@@ -102,6 +104,18 @@ public final class Anvil {
 		keys.addAll(mounts.values());
 		for (Mount m : keys) {
 			render(m);
+		}
+	}
+
+	public static int generateViewId() {
+		for (;;) {
+			final int result = sNextGeneratedId.get();
+			// aapt-generated IDs have the high byte nonzero; clamp to the range under that.
+			int newValue = result + 1;
+			if (newValue > 0x00FFFFFF) newValue = 1; // Roll over to 1, not 0.
+			if (sNextGeneratedId.compareAndSet(result, newValue)) {
+				return result;
+			}
 		}
 	}
 
@@ -218,9 +232,7 @@ public final class Anvil {
 			Node node = parent.children.get(i).reset();
 			ViewGroup vg = (ViewGroup) parent.view;
 			node.parentView = vg;
-			if (node.viewIndex >= 0 && node.viewIndex < vg.getChildCount()) {
-				node.view = vg.getChildAt(node.viewIndex);
-			}
+			node.view = vg.findViewById(node.viewId);
 			this.stack.push(node);
 			return node;
 		}
@@ -238,10 +250,11 @@ public final class Anvil {
 					node.parentView.removeView(view);
 				}
 				View v = viewFactory.fromClass(node.parentView.getContext(), viewClass);
-				if (node.viewIndex == -1) {
-					node.viewIndex = node.parentView.getChildCount();
+				if (node.viewId == -1) {
+					node.viewId = generateViewId();
+					v.setId(node.viewId);
 				}
-				node.parentView.addView(v, node.viewIndex);
+				node.parentView.addView(v);
 				node.view = v;
 			}
 		}
@@ -258,10 +271,11 @@ public final class Anvil {
 					node.parentView.removeView(node.view);
 				}
 				View v = viewFactory.fromXml(node.parentView.getContext(), layoutId);
-				if (node.viewIndex == -1) {
-					node.viewIndex = node.parentView.getChildCount();
+				if (node.viewId == -1) {
+					node.viewId = generateViewId();
+					v.setId(node.viewId);
 				}
-				node.parentView.addView(v, node.viewIndex);
+				node.parentView.addView(v);
 				node.view = v;
 			}
 		}
@@ -303,7 +317,7 @@ public final class Anvil {
 		private final List<Attr> attrs = new ArrayList<>();
 
 		// Index of the real view inside the parent viewgroup
-		private int viewIndex = -1;
+		private int viewId = -1;
 
 		// view class or layout id given when the node was last updated
 		private Class<? extends View> viewClass;

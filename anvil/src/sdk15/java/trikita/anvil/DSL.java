@@ -1317,10 +1317,6 @@ public final class DSL extends BaseDSL {
     return BaseDSL.attr(IconifiedByDefaultFunc148d6054.instance, arg);
   }
 
-  public static Void id(int arg) {
-    return BaseDSL.attr(IdFunc8567756a.instance, arg);
-  }
-
   public static Void ignoreGravity(int arg) {
     return BaseDSL.attr(IgnoreGravityFunc8567756a.instance, arg);
   }
