@@ -3,6 +3,7 @@ package trikita.anvil;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -149,7 +150,11 @@ public final class Anvil {
 			mounts.remove(v);
 			if (v instanceof ViewGroup) {
 				ViewGroup vg = (ViewGroup) v;
-				vg.removeViews(0, vg.getChildCount());
+				try {
+					vg.removeViews(0, vg.getChildCount());
+				} catch (Exception e){
+					Log.w("Anvil", "Exception while doing unmount", e);
+				}
 			}
 		}
 	}
