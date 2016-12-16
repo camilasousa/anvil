@@ -108,7 +108,7 @@ public final class Anvil {
 		}
 	}
 
-	public static int generateViewId() {
+	public static int generateViewTag() {
 		for (;;) {
 			final int result = sNextGeneratedId.get();
 			// aapt-generated IDs have the high byte nonzero; clamp to the range under that.
@@ -237,7 +237,7 @@ public final class Anvil {
 			Node node = parent.children.get(i).reset();
 			ViewGroup vg = (ViewGroup) parent.view;
 			node.parentView = vg;
-			node.view = vg.findViewById(node.viewId);
+			node.view = vg.findViewWithTag(node.viewTag);
 			this.stack.push(node);
 			return node;
 		}
@@ -255,9 +255,9 @@ public final class Anvil {
 					node.parentView.removeView(view);
 				}
 				View v = viewFactory.fromClass(node.parentView.getContext(), viewClass);
-				if (node.viewId == -1) {
-					node.viewId = generateViewId();
-					v.setId(node.viewId);
+				if (node.viewTag == -1) {
+					node.viewTag = generateViewTag();
+					v.setTag(node.viewTag);
 				}
 				node.parentView.addView(v);
 				node.view = v;
@@ -276,9 +276,9 @@ public final class Anvil {
 					node.parentView.removeView(node.view);
 				}
 				View v = viewFactory.fromXml(node.parentView.getContext(), layoutId);
-				if (node.viewId == -1) {
-					node.viewId = generateViewId();
-					v.setId(node.viewId);
+				if (node.viewTag == -1) {
+					node.viewTag = generateViewTag();
+					v.setId(node.viewTag);
 				}
 				node.parentView.addView(v);
 				node.view = v;
@@ -322,7 +322,7 @@ public final class Anvil {
 		private final List<Attr> attrs = new ArrayList<>();
 
 		// Index of the real view inside the parent viewgroup
-		private int viewId = -1;
+		private Integer viewTag = -1;
 
 		// view class or layout id given when the node was last updated
 		private Class<? extends View> viewClass;

@@ -2121,10 +2121,6 @@ public final class DSL extends BaseDSL {
     return BaseDSL.attr(SystemUiVisibilityFunc8567756a.instance, arg);
   }
 
-  public static Void tag(Object arg) {
-    return BaseDSL.attr(TagFunc3f697993.instance, arg);
-  }
-
   public static Void text(int arg) {
     return BaseDSL.attr(TextFunc8567756a.instance, arg);
   }
@@ -6315,14 +6311,6 @@ public final class DSL extends BaseDSL {
 
     public void apply(View v, final Integer arg, final Integer old) {
       v.setSystemUiVisibility(arg);
-    }
-  }
-
-  private static final class TagFunc3f697993 implements Anvil.AttrFunc<Object> {
-    public static final TagFunc3f697993 instance = new TagFunc3f697993();
-
-    public void apply(View v, final Object arg, final Object old) {
-      v.setTag(arg);
     }
   }
 
