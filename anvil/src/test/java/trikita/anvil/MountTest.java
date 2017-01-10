@@ -72,9 +72,10 @@ public class MountTest extends Utils {
         assertEquals(1, container.getChildCount());
         // Once the container is garbage collection all other views should be removed, too
         WeakReference<View> ref = new WeakReference<>(container.getChildAt(0));
+
         container = null;
         System.gc();
-        assertEquals(null, ref.get());
+        assertNull(ref.get());
         // Ensure that the associated renderable is no longer called
         Anvil.render();
         Mockito.verify(layout, Mockito.times(1)).view();

@@ -4,11 +4,18 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -19,13 +26,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.Matchers.anyInt;
+
 @TargetApi(Build.VERSION_CODES.KITKAT)
-public class Utils implements Anvil.ViewFactory {
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({View.class, ViewGroup.class, FrameLayout.class, Utils.MockLayout.class, Utils.MockView.class})
+abstract public class Utils implements Anvil.ViewFactory {
 
     Map<Class, Integer> createdViews = new HashMap<>();
     Map<String, Integer> changedAttrs = new HashMap<>();
 
-    public Utils() {
+    Utils() {
         mockViewFactory(this);
     }
 
@@ -46,7 +57,11 @@ public class Utils implements Anvil.ViewFactory {
     public View fromClass(Context c, Class<? extends View> v) {
         try {
             createdViews.put(v, !createdViews.containsKey(v) ? 1 : (createdViews.get(v) + 1));
-            return Mockito.spy(v.getConstructor(Context.class).newInstance(getContext()));
+            View mocked = Mockito.spy(v.getConstructor(Context.class).newInstance(getContext()));
+            if (mocked instanceof MockLayout) {
+                mockFindViewWithTags((MockLayout) mocked);
+            }
+            return mocked;
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
@@ -74,7 +89,8 @@ public class Utils implements Anvil.ViewFactory {
     }
 
     Anvil.Renderable empty = new Anvil.Renderable() {
-        public void view() {}
+        public void view() {
+        }
     };
 
     MockLayout container;
@@ -83,7 +99,8 @@ public class Utils implements Anvil.ViewFactory {
     public void setUp() {
         changedAttrs.clear();
         createdViews.clear();
-        container = new MockLayout(getContext());
+        container = Mockito.spy(new MockLayout(getContext()));
+        mockFindViewWithTags(container);
     }
 
     @After
@@ -91,6 +108,24 @@ public class Utils implements Anvil.ViewFactory {
         Anvil.unmount(container);
     }
 
+    public void mockFindViewWithTags(MockLayout mockedView) {
+        PowerMockito
+                .doAnswer(new Answer<Object>() {
+                    @Override
+                    public View answer(InvocationOnMock invocation) throws Throwable {
+                        Object tag = invocation.getArgumentAt(0, Object.class);
+                        MockLayout mockLayout = (MockLayout) invocation.getMock();
+                        for (View child : mockLayout.children) {
+                            if (child.getTag().equals(tag)) {
+                                return child;
+                            }
+                        }
+                        return null;
+                    }
+                })
+                .when(mockedView)
+                .findViewWithTag(anyInt());
+    }
 
     public Context getContext() {
         return null;
@@ -98,14 +133,25 @@ public class Utils implements Anvil.ViewFactory {
 
     public static class MockView extends View {
         public final Map<String, Object> props = new HashMap<>();
+
         public MockView(Context c) {
             super(c);
         }
+
         public void setId(int id) {
             this.props.put("id", id);
         }
+
         public int getId() {
             return (Integer) this.props.get("id");
+        }
+
+        public void setTag(Object tag) {
+            this.props.put("tag", tag);
+        }
+
+        public Object getTag() {
+            return this.props.get("tag");
         }
     }
 
@@ -141,7 +187,7 @@ public class Utils implements Anvil.ViewFactory {
 
         public void removeViews(int start, int count) {
             if (count > 0) {
-                this.children.subList(start, start+count).clear();
+                this.children.subList(start, start + count).clear();
             }
             super.removeViews(start, count);
         }
@@ -152,6 +198,14 @@ public class Utils implements Anvil.ViewFactory {
 
         public int getId() {
             return (Integer) this.props.get("id");
+        }
+
+        public void setTag(Object tag) {
+            this.props.put("tag", tag);
+        }
+
+        public Object getTag() {
+            return this.props.get("tag");
         }
     }
 
